@@ -1,6 +1,6 @@
 name := "kafka-pubsub"
 organization := "de.th-koeln.inf.adv"
-version := "0.1"
+version := "0.2"
 scalaVersion := "2.13.8"
 
 resolvers += "Artima Maven Repository" at "https://repo.artima.com/releases"

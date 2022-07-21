@@ -14,13 +14,12 @@ final class KafkaPublisher[A](
     private val serializer: Class[_ <: Serializer[A]]
 ) {
 
-  type OnComplete = (Record, Try[RecordMetadata]) => Unit
-  type Record = (String, A)
+  type OnComplete = (Record[A], Try[RecordMetadata]) => Unit
 
   private val props = buildProperties(config.server)
   private val producer = new KafkaProducer[String, A](props)
 
-  private def callback(record: Record, f: OnComplete): Callback =
+  private def callback(record: Record[A], f: OnComplete): Callback =
     (metadata: RecordMetadata, exception: Exception) =>
       f(
         record,
@@ -32,15 +31,17 @@ final class KafkaPublisher[A](
 
   def publishComplete(
       topic: String
-  )(records: Seq[Record])(onComplete: OnComplete): Unit = {
-    records map { case (k, v) =>
-      val record = new ProducerRecord(topic, k, v)
-      producer.send(record, callback((k, v), onComplete))
+  )(records: Seq[Record[A]])(onComplete: OnComplete): Unit = {
+    records map { record =>
+      producer.send(
+        new ProducerRecord(topic, record.key, record.value),
+        callback(record, onComplete)
+      )
     }
     producer.flush()
   }
 
-  def publish(topic: String)(records: Seq[Record]): Unit =
+  def publish(topic: String)(records: Seq[Record[A]]): Unit =
     publishComplete(topic)(records)((_, _) => ())
 
   def close(): Unit = producer.close()
