@@ -10,6 +10,7 @@ import scala.util.{Failure, Success, Try}
 
 final class KafkaPublisher[A](
     private val config: KafkaConfig,
+    private val topic: String,
     private val appLifecycle: AppLifecycle,
     private val serializer: Class[_ <: Serializer[A]]
 ) {
@@ -29,9 +30,7 @@ final class KafkaPublisher[A](
           Failure(exception)
       )
 
-  def publishComplete(
-      topic: String
-  )(records: Seq[Record[A]])(onComplete: OnComplete): Unit = {
+  def publishComplete(records: Seq[Record[A]])(onComplete: OnComplete): Unit = {
     records map { record =>
       producer.send(
         new ProducerRecord(topic, record.key, record.value),
@@ -41,8 +40,8 @@ final class KafkaPublisher[A](
     producer.flush()
   }
 
-  def publish(topic: String)(records: Seq[Record[A]]): Unit =
-    publishComplete(topic)(records)((_, _) => ())
+  def publish(records: Seq[Record[A]]): Unit =
+    publishComplete(records)((_, _) => ())
 
   def close(): Unit = producer.close()
 
